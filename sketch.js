@@ -55,7 +55,7 @@ sketch.draw = () => {
     buffer.scale(zoom,-zoom); // translate coordinate system to make it normal
     rounds+=speed;
 
-    if(rounds<5000) {
+    if(rounds<50000/numplayers) {
         for(let multiple=0;multiple<speed;multiple++) {
             for(let turn=0;turn<numplayers;turn++) {
                 let found = false; // as long as we dont find a suitable place, keep moving
