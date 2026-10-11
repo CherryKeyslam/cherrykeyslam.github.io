@@ -126,6 +126,8 @@ function resize(){
   canvas.height = Math.round(innerHeight * dpr);
   request();
 }
+
+//main draw loop
 function draw(){
   queued = false;
   if (!prog) return;
