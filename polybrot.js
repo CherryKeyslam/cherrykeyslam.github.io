@@ -197,10 +197,30 @@ formulaInput.addEventListener('keydown', e => {
 
 let mouse = null;   // [clientX, clientY] while a mouse is over the canvas, else null
 
+const reIn = document.getElementById('re');
+const imIn = document.getElementById('im');
+
 function updateReadout(){
   const [re, im] = mouse ? toPlane(mouse[0], mouse[1]) : [state.x, state.y];
-  document.getElementById('re').textContent = re.toFixed(6);
-  document.getElementById('im').textContent = im.toFixed(6);
+  if (document.activeElement !== reIn) reIn.value = re.toFixed(6);   // don't overwrite while typing
+  if (document.activeElement !== imIn) imIn.value = im.toFixed(6);
+}
+
+
+//set x and y
+for (const [input, key] of [[reIn, 'x'], [imIn, 'y']]) {
+  let original = '';
+  input.addEventListener('focus', () => { original = input.value; input.select(); });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  input.blur();                                   // apply
+    if (e.key === 'Escape') { input.value = original; input.blur(); }       // cancel
+  });
+  input.addEventListener('change', () => {
+    if (input.value === original) return;          // unchanged: don't snap to the rounded value
+    const v = parseFloat(input.value);
+    if (Number.isFinite(v)) { state[key] = v; request(); }
+  });
+  input.addEventListener('blur', updateReadout);   // put the live value back (or undo bad input)
 }
 
 // screen px -> plane coords
