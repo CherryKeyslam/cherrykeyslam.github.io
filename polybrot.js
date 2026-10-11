@@ -56,7 +56,7 @@ vec3 shade(vec2 z0, float pxin){
 
   float nu = log(log(float(i) * log2(0.5*log(dot(z,z))) / log(p)));
   nu /= log(log(float(maxloop) * log(0.5*log(r2)) / log(p)));   // one more log for both to colour z^z
-  return 0.5 + 0.5*cos(2.0*PI*(nu*1.5 + phase)); //grad=1.5
+  return 0.5 + 0.5*cos(2.0*PI*(nu*1.5+phase)); //grad=1.5
 }
 
 void main(){
@@ -140,9 +140,9 @@ function draw(){
   gl.blendFunc(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA);
   gl.blendColor(0, 0, 0, 1 / (frame + 1));     // running average: new frame weighted 1/(n+1)
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  document.getElementById('re').textContent = state.x.toFixed(6);
-  document.getElementById('im').textContent = state.y.toFixed(6);
+  updateReadout();
   document.getElementById('zm').textContent = state.scroll < 1000 ? state.scroll.toFixed(2) + '×' : state.scroll.toExponential(2) + '×';
+  zoomSlider.value = Math.log10(state.scroll);
   frame++;
   if (frame < MAX_FRAMES) { queued = true; requestAnimationFrame(draw); }
 }
@@ -195,6 +195,14 @@ formulaInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') { clearTimeout(formulaTimer); applyFormula(formulaInput.value); }
 });
 
+let mouse = null;   // [clientX, clientY] while a mouse is over the canvas, else null
+
+function updateReadout(){
+  const [re, im] = mouse ? toPlane(mouse[0], mouse[1]) : [state.x, state.y];
+  document.getElementById('re').textContent = re.toFixed(6);
+  document.getElementById('im').textContent = im.toFixed(6);
+}
+
 // screen px -> plane coords
 function toPlane(cx, cy){
   const m = Math.min(innerWidth, innerHeight);
@@ -238,6 +246,18 @@ function up(e){ pts.delete(e.pointerId); pinch = 0; if (!pts.size) canvas.classL
 canvas.addEventListener('pointerup', up);
 canvas.addEventListener('pointercancel', up);
 
+canvas.addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse') return;     // touch and pen keep the centre readout
+  mouse = [e.clientX, e.clientY];
+  updateReadout();                            // hovering alone needs no redraw
+});
+canvas.addEventListener('pointerleave', e => {
+  if (e.pointerType === 'mouse') { mouse = null; updateReadout(); }
+});
+canvas.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'mouse') { mouse = null; updateReadout(); }   // laptop with a touchscreen
+});
+
 // keyboard (same step as the original: 0.06 / scroll)
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
@@ -259,6 +279,12 @@ addEventListener('keydown', e => {
 const iter = document.getElementById('iter');
 iter.addEventListener('input', () => { state.iter = +iter.value; document.getElementById('iv').textContent = iter.value; request(); });
 document.getElementById('reset').onclick = () => { Object.assign(state, { x: 0, y: 0, scroll: 1 }); request(); };
+
+const zoomSlider = document.getElementById('zoom');
+zoomSlider.addEventListener('input', () => {
+  const target = Math.pow(10, +zoomSlider.value);
+  zoomAt(innerWidth / 2, innerHeight / 2, target / state.scroll);   // zoom about the screen centre
+});
 
 // rgb input
 const phaseInput = document.getElementById('phase');
